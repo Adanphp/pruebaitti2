@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.3.0/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Productos</h1>
+        <hr>
+
+        <!-- Formulario para agregar un producto -->
+        <div class="mb-3">
+            <h3>Agregar Producto</h3>
+            <form id="formulario">
+                <div class="mb-3">
+                    <label for="descripcion" class="form-label">Descripción</label>
+                    <input type="text" class="form-control" id="descripcion" required>
+                </div>
+                <div class="mb-3">
+                    <label for="categoria" class="form-label">Categoría</label>
+                    <input type="text" class="form-control" id="categoria">
+                </div>
+                <div class="mb-3">
+                    <label for="cantidad" class="form-label">Cantidad</label>
+                    <input type="number" class="form-control" id="cantidad" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Agregar</button>
+            </form>
+        </div>
+
+        <!-- Mensajes de error y éxito -->
+        <div id="mensaje" class="alert" role="alert" style="display: none;"></div>
+
+        <!-- Listado de productos -->
+        <div>
+            <h3>Listado de Productos</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th>Cantidad</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaProductos">
+                    <!-- Los productos se agregarán dinámicamente aquí -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Obtener los productos al cargar la página
+            getProductos();
+
+            // Agregar evento submit al formulario
+            $('#formulario').submit(function(event) {
+                event.preventDefault();
+
+                // Obtener los valores del formulario
+                var descripcion = $('#descripcion').val();
+                var categoria = $('#categoria').val();
+                var cantidad = $('#cantidad').val();
+
+                // Realizar la petición POST para agregar un producto
+                $.ajax({
+                    url: 'http://127.0.0.1:8000/productos',
+                    method: 'POST',
+                    data: {
+                        descripcion: descripcion,
+                        categoria: categoria,
+                        cantidad: cantidad
+                    },
+                    success: function(response) {
+                        // Mostrar mensaje de éxito
+                        mostrarMensaje('success', 'Registro agregado correctamente');
+                        // Limpiar el formulario
+                        $('#formulario')[0].reset();
+                        // Actualizar la tabla de productos
+                        getProductos();
+                    },
+                    error: function(xhr, status, error) {
+                        // Mostrar mensaje de error
+                        var mensajeError = 'Error: ' + xhr.responseText;
+                        mostrarMensaje('error', mensajeError);
+                    }
+                });
+            });
+
+            // Agregar evento click a los botones de baja
+            $('#tablaProductos').on('click', '.btn-baja', function() {
+                var id = $(this).data('id');
+                darDeBajaProducto(id);
+            });
+
+            // Obtener los productos y mostrarlos en la tabla
+            function getProductos() {
+                $.ajax({
+                    url: 'http://127.0.0.1:8000/productos',
+                    method: 'GET',
+                    success: function(response) {
+                        var productos = response.data;
+                        var tablaProductos = $('#tablaProductos');
+
+                        // Limpiar la tabla de productos
+                        tablaProductos.empty();
+
+                        // Recorrer los productos y agregarlos a la tabla
+                        productos.forEach(function(producto) {
+                            var fila = '<tr>' +
+                                '<td>' + producto.id + '</td>' +
+                                '<td>' + producto.descripcion + '</td>' +
+                                '<td>' + (producto.categoria || '') + '</td>' +
+                                '<td>' + producto.cantidad + '</td>' +
+                                '<td>' + (producto.estado ? 'Activo' : 'No activo') + '</td>' +
+                                '<td>' +
+                                '<button type="button" class="btn btn-sm btn-danger btn-baja" data-id="' + producto.id + '">Dar de baja</button>' +
+                                '</td>' +
+                                '</tr>';
+
+                            tablaProductos.append(fila);
+                        });
+                    },
+                    error: function(xhr, status, error) {
+                        // Mostrar mensaje de error
+                        var mensajeError = 'Error: ' + xhr.responseText;
+                        mostrarMensaje('error', mensajeError);
+                    }
+                });
+            }
+
+            // Dar de baja un producto
+            function darDeBajaProducto(id) {
+                $.ajax({
+                    url: 'http://127.0.0.1:8000/productos/{id}' + id,
+                    method: 'DELETE',
+                    success: function(response) {
+                        // Mostrar mensaje de éxito
+                        mostrarMensaje('success', 'Producto dado de baja correctamente');
+                        // Actualizar la tabla de productos
+                        getProductos();
+                    },
+                    error: function(xhr, status, error) {
+                        // Mostrar mensaje de error
+                        var mensajeError = 'Error: ' + xhr.responseText;
+                        mostrarMensaje('error', mensajeError);
+                    }
+                });
+            }
+
+            // Función para mostrar mensajes de error y éxito
+            function mostrarMensaje(tipo, mensaje) {
+                var alertClass = '';
+                if (tipo === 'success') {
+                    alertClass = 'alert-success';
+                } else if (tipo === 'error') {
+                    alertClass = 'alert-danger';
+                }
+
+                $('#mensaje').removeClass().addClass('alert ' + alertClass);
+                $('#mensaje').text(mensaje);
+                $('#mensaje').show();
+
+                // Ocultar el mensaje después de 3 segundos
+                setTimeout(function() {
+                    $('#mensaje').hide();
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>
